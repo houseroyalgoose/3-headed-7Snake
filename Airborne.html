@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3-headed 7Snake</title>
+   
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: #1a1a1a;
+            font-family: 'Courier New', monospace;
+            color: white;
+        }
+        
+        h1 {
+            margin-bottom: 20px;
+            font-size: 2em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        #score {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+        
+        canvas {
+            border: 3px solid #333;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+        
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3em;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 0 20px red;
+            display: none;
+            z-index: 10;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>3-headed 7Snake</h1>
+    <div id="score">Score: 0</div>
+    <canvas id="gameCanvas" width="800" height="800"></canvas>
+    <div id="gameOver">7 DOWN<br>NONE TO GO</div>
+    
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const gameOverDiv = document.getElementById('gameOver');
+        const scoreDiv = document.getElementById('score');
+        
+        const tileSize = 20;
+        const gridSize = 40;
+        
+        let snake = [];
+        let direction = { x: 1, y: 0 };
+        let food = { x: 15, y: 15 };
+        let score = 0;
+        let gameLoop;
+        let glowIntensity = 0;
+        let glowDirection = 1;
+        
+        function initGame() {
+            
+            snake = [
+                { x: 20, y: 20 }, 
+                { x: 20, y: 21 }, 
+                { x: 20, y: 22 }, 
+                { x: 20, y: 23 }, 
+                { x: 20, y: 24 }, 
+                { x: 20, y: 25 }, 
+                { x: 20, y: 26 }  
+            ];
+            direction = { x: 0, y: -1 }; 
+            score = 0;
+            scoreDiv.textContent = 'Score: 0';
+            spawnFood();
+            if (gameLoop) clearInterval(gameLoop);
+            gameLoop = setInterval(update, 100);
+        }
+        
+        function spawnFood() {
+            do {
+                food = {
+                    x: Math.floor(Math.random() * gridSize),
+                    y: Math.floor(Math.random() * gridSize)
+                };
+            } while (snake.some(segment => segment.x === food.x && segment.y === food.y));
+        }
+        
+        function update() {
+            
+            const head = { x: snake[0].x + direction.x, y: snake[0].y + direction.y };
+            
+            
+            if (head.x < 0 || head.x >= gridSize || head.y < 0 || head.y >= gridSize) {
+                gameOver();
+                return;
+            }
+            
+            
+            if (snake.some(segment => segment.x === head.x && segment.y === head.y)) {
+                gameOver();
+                return;
+            }
+            
+            
+            snake.unshift(head);
+            
+            
+            if (head.x === food.x && head.y === food.y) {
+                score += 7;
+                scoreDiv.textContent = 'Score: ' + score;
+                console.log('7 served');
+                spawnFood();
+            } else {
+                
+                snake.pop();
+            }
+            
+            draw();
+        }
+        
+        function draw() {
+            
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            
+            glowIntensity += glowDirection * 0.05;
+            if (glowIntensity >= 1 || glowIntensity <= 0) {
+                glowDirection *= -1;
+            }
+            
+            
+            ctx.save();
+            ctx.shadowBlur = 20 * glowIntensity;
+            ctx.shadowColor = 'red';
+            ctx.fillStyle = 'red';
+            ctx.font = 'bold ' + tileSize + 'px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('7', food.x * tileSize + tileSize / 2, food.y * tileSize + tileSize / 2);
+            ctx.restore();
+            
+            
+            ctx.fillStyle = 'lime';
+            for (let i = 3; i < snake.length; i++) {
+                ctx.fillRect(snake[i].x * tileSize, snake[i].y * tileSize, tileSize, tileSize);
+            }
+            
+            
+            ctx.fillStyle = 'gold';
+            for (let i = 0; i < 3 && i < snake.length; i++) {
+                ctx.fillRect(snake[i].x * tileSize, snake[i].y * tileSize, tileSize, tileSize);
+            }
+        }
+        
+        function gameOver() {
+            clearInterval(gameLoop);
+            
+            
+            canvas.style.border = '3px solid red';
+            ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            
+            gameOverDiv.style.display = 'block';
+            
+            
+            setTimeout(() => {
+                canvas.style.border = '3px solid #333';
+                gameOverDiv.style.display = 'none';
+                initGame();
+            }, 2000);
+        }
+        
+        
+        document.addEventListener('keydown', (e) => {
+            switch(e.key) {
+                case 'ArrowUp':
+                    if (direction.y === 0) direction = { x: 0, y: -1 };
+                    break;
+                case 'ArrowDown':
+                    if (direction.y === 0) direction = { x: 0, y: 1 };
+                    break;
+                case 'ArrowLeft':
+                    if (direction.x === 0) direction = { x: -1, y: 0 };
+                    break;
+                case 'ArrowRight':
+                    if (direction.x === 0) direction = { x: 1, y: 0 };
+                    break;
+            }
+        });
+        
+        
+        initGame();
+    </script>
+</body>
+</html>
